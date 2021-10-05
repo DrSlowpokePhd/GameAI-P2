@@ -83,4 +83,6 @@ def think(board, state):
 
     # Return an action, typically the most frequently used action (from the root) or the action with the best
     # estimated win rate.
-    return None
+    action = choice(board.legal_actions(state))
+    print(type(action), action)
+    return action # return random node for now
