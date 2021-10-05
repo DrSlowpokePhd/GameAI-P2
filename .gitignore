@@ -1,0 +1,6 @@
+src/__pycache__/random_bot.cpython-39.pyc
+src/__pycache__/mcts_modified.cpython-39.pyc
+src/__pycache__/mcts_node.cpython-39.pyc
+src/__pycache__/mcts_vanilla.cpython-39.pyc
+src/__pycache__/p2_t3.cpython-39.pyc
+src/__pycache__/rollout_bot.cpython-39.pyc
