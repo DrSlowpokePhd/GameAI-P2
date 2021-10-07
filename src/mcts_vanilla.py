@@ -18,7 +18,13 @@ def traverse_nodes(node, board, state, identity):
     Returns:        A node from which the next stage of the search can proceed.
 
     """
-    pass
+
+    if(board.current_player(state) == identity and len(node.action_list) != 0):
+        return node
+    else:
+        # Select a child node based on uct?
+        return traverse_nodes(list(node.child_nodes.values())[0], board, state, identity)
+    
     # Hint: return leaf_node
 
 
@@ -31,9 +37,11 @@ def expand_leaf(node, board, state):
         state:  The state of the game.
 
     Returns:    The added child node.
-
+    
     """
-    pass
+    # How do I figure out the action that got to here?
+    new_node = MCTSNode(node, None, None)
+    return new_node
     # Hint: return new_node
 
 
@@ -56,7 +64,15 @@ def backpropagate(node, won):
         won:    An indicator of whether the bot won or lost the game.
 
     """
-    pass
+    if(node.parent is None):
+        return
+
+    if(won):
+        node.wins += 1
+    else:
+        node.wins -= 1
+    node.visits += 1  
+    backpropagate(node.parent, won)
 
 
 def think(board, state):
@@ -71,7 +87,7 @@ def think(board, state):
     """
     identity_of_bot = board.current_player(state)
     root_node = MCTSNode(parent=None, parent_action=None, action_list=board.legal_actions(state))
-
+    selectedAction = None
     for step in range(num_nodes):
         # Copy the game for sampling a playthrough
         sampled_game = state
@@ -80,9 +96,24 @@ def think(board, state):
         node = root_node
 
         # Do MCTS - This is all you!
+        leaf_node = traverse_nodes(node, board, sampled_game, identity_of_bot)
+        # create new node from the selected leaf (Expansion)
+        new_node = expand_leaf(leaf_node, board, sampled_game)
+        # Create the new state given the action from the expansion (WIP)
+        sampled_game = board.next_state(sampled_game, choice(board.legal_actions(sampled_game)))
+        if(board.is_ended(sampled_game)):
+            #choose winning move
+            break
+        # rollout the new_node and determine if its a win
+        rollout(board, sampled_game)
+        # backpropagate the new_node to update its parents
+        backpropagate(new_node)
 
     # Return an action, typically the most frequently used action (from the root) or the action with the best
     # estimated win rate.
     action = choice(board.legal_actions(state))
     print(type(action), action)
     return action # return random node for now
+
+def UCTValue(node):
+    return (node.wins/node.visits) * explore_faction(sqrt(log())/node.visits)
