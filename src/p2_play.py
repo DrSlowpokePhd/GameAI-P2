@@ -47,7 +47,6 @@ last_action = None
 current_player = player1
 while not board.is_ended(state):
     print(board.display(state, last_action))
-    print(state)
     print("Player "+str(board.current_player(state)))
     last_action = current_player(board, state)
     state = board.next_state(state, last_action)
