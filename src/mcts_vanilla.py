@@ -3,6 +3,7 @@ from random import choice
 from math import sqrt, log
 
 num_nodes = 1000
+
 explore_faction = 2
 
 def traverse_nodes(node, board, state, identity):
@@ -19,20 +20,23 @@ def traverse_nodes(node, board, state, identity):
     """
     best_child = node
     current_state = state
-    #If the node did not try all actions, then expand the node
-    if len(node.untried_actions) != 0:
-        return expand_leaf(node, board, state)
-    if len(best_child.untried_actions) == 0 and len(best_child.child_nodes) > 0:
+    #print(len(best_child.untried_actions))
+    if len(best_child.untried_actions) == 0:
+        #print("Hello:", board.current_player(current_state))
+        if(len(best_child.child_nodes) == 0):
+            return -1, -1
+
         if(board.current_player(current_state) == identity):
             #Returns the child with the best win percentage
             best_child = max(best_child.child_nodes.values(), key = lambda a: (a.wins/a.visits) + (explore_faction)*sqrt(2*log(a.parent.visits)/a.visits))
         else:
             #Chose the move that is the lowest win rate for this player (best move for opponent)
             best_child = max(best_child.child_nodes.values(), key = lambda a: (1 - a.wins/a.visits) + (explore_faction)*sqrt(2*log(a.parent.visits)/a.visits))
-        #Given the best/worse move, create the next state
         current_state = board.next_state(current_state, best_child.parent_action)
-    return best_child, current_state
-    # Hint: return leaf_node
+        return traverse_nodes(best_child, board, current_state, 1 if identity == 2 else 2)
+    else:
+        #print("return")
+        return best_child, state
 
 
 def expand_leaf(node, board, state):
@@ -46,20 +50,21 @@ def expand_leaf(node, board, state):
     Returns:    The added child node.
     
     """
-    #Default values it returns if conditional is not met
     new_leaf = node
     new_state = state
-    #Checks if there are still any untried actions left
+
+    # Check if there are any untried actions, if it doesn't have any, its the end
     if(len(node.untried_actions) != 0):
+        # Choose a random move from the list to expand with
         move = choice(node.untried_actions)
         new_state = board.next_state(new_state, move)
-        #Creates a new child node and links it to it's parent
         new_leaf = MCTSNode(parent = node, parent_action = move, action_list = board.legal_actions(new_state))
         node.child_nodes[move] = new_leaf
-        #Remove untried actions
+        #Remove untried actions from parent
         node.untried_actions.remove(move)
+
+    # If the condition did not meet, then that means there are no more actions to explore
     return new_leaf, new_state
-    # Hint: return new_node
 
 
 def rollout(board, state):
@@ -107,25 +112,37 @@ def think(board, state):
     identity_of_bot = board.current_player(state)
     root_node = MCTSNode(parent=None, parent_action=None, action_list=board.legal_actions(state))
     root_node.visits = 1
+    #print("Untried: ", root_node.untried_actions)
 
     for step in range(num_nodes):
         sampled_game = state
 
         node = root_node
+        
         #Select the next node and expand the tree with the best uct value
-        leaf_node, depth_state = traverse_nodes(node, board, sampled_game, identity_of_bot)
+        leaf_node, sampled_state = traverse_nodes(node, board, sampled_game, identity_of_bot)
+
+        if(leaf_node == -1):
+            break
+
+        #If the node did not try all actions, then try to expand the node
+        new_node, new_state = expand_leaf(leaf_node, board, sampled_state)
+
+        # If the new expansion does not expand, then quit and chose best child
+        if(new_node == leaf_node):
+            break
 
         #Simulate the rest of the game randomly
-        end_state = rollout(board, depth_state)
+        end_state = rollout(board, new_state)
 
         # Get winner of the end result and update depending on it
         round_winner = board.win_values(end_state)
         if round_winner[identity_of_bot] == 1:
-            backpropagate(leaf_node, 1)     # Win
+            backpropagate(new_node, 1)     # Win
         elif round_winner[identity_of_bot] == 0.5:
-            backpropagate(leaf_node, 0.5)   # Tie
+            backpropagate(new_node, 0.5)   # Tie
         else:
-            backpropagate(leaf_node, 0)     # Loss
+            backpropagate(new_node, 0)     # Loss
 
     # Get the best win rate move from the possible actions of the root node
     return max(root_node.child_nodes.values(), key = lambda a: a.wins/a.visits).parent_action
