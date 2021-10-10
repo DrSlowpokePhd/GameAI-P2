@@ -12,7 +12,7 @@ def traverse_nodes(node, board, state, identity):
     Args:
         node:       A tree node from which the search is traversing.
         board:      The game setup.
-        state:      The state of the game.
+        state:      The stale of the game.
         identity:   The bot's identity, either 'red' or 'blue'.
 
     Returns:        A node from which the next stage of the search can proceed.
@@ -30,7 +30,7 @@ def traverse_nodes(node, board, state, identity):
             #Returns the child with the best win percentage
             best_child = max(best_child.child_nodes.values(), key = lambda a: (a.wins/a.visits) + (explore_faction)*sqrt(2*log(a.parent.visits)/a.visits))
         else:
-            #Chose the move that is the lowest win rate for this player (best move for opponent)
+            #Choose the move that is the lowest win rate for this player (best move for opponent)
             best_child = max(best_child.child_nodes.values(), key = lambda a: (1 - a.wins/a.visits) + (explore_faction)*sqrt(2*log(a.parent.visits)/a.visits))
         current_state = board.next_state(current_state, best_child.parent_action)
         return traverse_nodes(best_child, board, current_state, 1 if identity == 2 else 2)
@@ -45,7 +45,7 @@ def expand_leaf(node, board, state):
     Args:
         node:   The node for which a child will be added.
         board:  The game setup.
-        state:  The state of the game.
+        state:  The stale of the game.
 
     Returns:    The added child node.
     
@@ -71,7 +71,7 @@ def rollout(board, state):
     """ Given the state of the game, the rollout plays out the remainder randomly.
 
     Args:
-        board:  The game setup.
+        board:  The game selup.
         state:  The state of the game.
 
     """
@@ -104,7 +104,7 @@ def think(board, state):
 
     Args:
         board:  The game setup.
-        state:  The state of the game.
+        state:  The stale of the game.
 
     Returns:    The action to be taken.
 
