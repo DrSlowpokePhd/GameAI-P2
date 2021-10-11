@@ -18,7 +18,28 @@ def traverse_nodes(node, board, state, identity):
     Returns:        A node from which the next stage of the search can proceed.
 
     """
-    pass
+    best_child = node
+    current_state = state
+    #print(len(best_child.untried_actions))
+    if len(best_child.untried_actions) == 0:
+        #print("Hello:", board.current_player(current_state))
+        if(len(best_child.child_nodes) == 0):
+            return -1, -1
+
+        if(board.current_player(current_state) == identity):
+            #Returns the child with the best win percentage
+            best_child = max(best_child.child_nodes.values(), key = lambda a: (a.wins/a.visits) + (explore_faction)*sqrt(2*log(a.parent.visits)/a.visits))
+        else:
+            #Choose the move that is the lowest win rate for this player (best move for opponent)
+            best_child = max(best_child.child_nodes.values(), key = lambda a: (1 - a.wins/a.visits) + (explore_faction)*sqrt(2*log(a.parent.visits)/a.visits))
+        current_state = board.next_state(current_state, best_child.parent_action)
+        return traverse_nodes(best_child, board, current_state, 1 if identity == 2 else 2)
+    else:
+        #print("return")
+        return best_child, state
+
+
+    
     # Hint: return leaf_node
 
 
@@ -33,10 +54,46 @@ def expand_leaf(node, board, state):
     Returns:    The added child node.
 
     """
-    pass
-    # Hint: return new_node
+    new_leaf = node
+    new_state = state
 
+    # Check if there are any untried actions, if it doesn't have any, its the end
+    if(len(node.untried_actions) != 0):
+        # Choose a random move from the list to expand with
+        move = choice(node.untried_actions)
+        new_state = board.next_state(new_state, move)
+        new_leaf = MCTSNode(parent = node, parent_action = move, action_list = board.legal_actions(new_state))
+        node.child_nodes[move] = new_leaf
+        #Remove untried actions from parent
+        node.untried_actions.remove(move)
 
+    # If the condition did not meet, then that means there are no more actions to explore
+    return new_leaf, new_state
+     
+def find_gap(state):
+    state_x, state_y = state[0][0], state[0][1]
+    # turn state into 2d array
+    d_state = [[False, False, False], [False, False, False], [False, False, False]]
+    gaps = []
+    for space in state:
+        d_state[space[2]][space[3]] = True
+
+    # run check
+    for i in range(3):
+        for j in range(3):
+            if d_state[i][j] and not (d_state[i-2][j]) and not (d_state[i-1][j]):
+                gaps.append((state_x, state_y, i, j))
+            if d_state[i][j] and not (d_state[i][j-2]) and not (d_state[i][j-1]):
+                gaps.append((state_x, state_y, i, j))
+            if d_state[i][j] and not (d_state[i-1][j-1]) and not (d_state[i-2][j-2]):
+                gaps.append((state_x, state_y, i, j))
+            if d_state[i][j] and not (d_state[i-1][j-2]) and not (d_state[i-2][j-1]):
+                gaps.append((state_x, state_y, i, j))
+            # add case for when multiple gaps appear (choose 1)
+    if not gaps:
+        return False
+    else:
+        return choice(gaps)
 def rollout(board, state):
     """ Given the state of the game, the rollout plays out the remainder randomly.
 
@@ -45,7 +102,17 @@ def rollout(board, state):
         state:  The state of the game.
 
     """
-    pass
+    current_state = state
+    legal_moves = board.legal_actions(current_state)
+    while not board.is_ended(current_state):
+        if find_gap(board.legal_actions(current_state)):
+            rollout_move = find_gap(board.legal_actions(current_state))
+        else:
+            rollout_move = choice(board.legal_actions(current_state))
+        current_state = board.next_state(current_state, rollout_move)
+        legal_moves = board.legal_actions(current_state)
+    return current_state
+        
 
 
 def backpropagate(node, won):
@@ -56,7 +123,13 @@ def backpropagate(node, won):
         won:    An indicator of whether the bot won or lost the game.
 
     """
-    pass
+    if(node.parent is None):
+        return
+
+    node.wins += won
+    node.visits += 1  
+    backpropagate(node.parent, won)
+
 
 
 def think(board, state):
@@ -79,8 +152,32 @@ def think(board, state):
         # Start at root
         node = root_node
 
-        # Do MCTS - This is all you!
 
-    # Return an action, typically the most frequently used action (from the root) or the action with the best
-    # estimated win rate.
-    return None
+        #Select the next node and expand the tree with the best uct value
+        leaf_node, sampled_state = traverse_nodes(node, board, sampled_game, identity_of_bot)
+
+        if(leaf_node == -1):
+            break
+
+        #If the node did not try all actions, then try to expand the node
+        new_node, new_state = expand_leaf(leaf_node, board, sampled_state)
+
+        # If the new expansion does not expand, then quit and chose best child
+        if(new_node == leaf_node):
+            break
+
+        #Simulate the rest of the game randomly
+        end_state = rollout(board, new_state)
+
+        # Get winner of the end result and update depending on it
+        round_winner = board.win_values(end_state)
+        if round_winner[identity_of_bot] == 1:
+            backpropagate(new_node, 1)     # Win
+        elif round_winner[identity_of_bot] == 0.5:
+            backpropagate(new_node, 0.5)   # Tie
+        else:
+            backpropagate(new_node, 0)     # Loss
+
+    # Get the best win rate move from the possible actions of the root node
+    return max(root_node.child_nodes.values(), key = lambda a: a.wins/a.visits).parent_action
+        

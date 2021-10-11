@@ -79,6 +79,7 @@ def rollout(board, state):
     while not board.is_ended(current_state):
         # Create next state with random choice of actions
         rollout_move = choice(board.legal_actions(current_state))
+        # print(board.legal_actions(current_state))
         current_state = board.next_state(current_state, rollout_move)
     return current_state
 
