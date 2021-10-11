@@ -28,6 +28,7 @@ def traverse_nodes(node, board, state, identity):
 
         if(board.current_player(current_state) == identity):
             #Returns the child with the best win percentage
+            # math domain error here, a.parent.visits is 0
             best_child = max(best_child.child_nodes.values(), key = lambda a: (a.wins/a.visits) + (explore_faction)*sqrt(2*log(a.parent.visits)/a.visits))
         else:
             #Choose the move that is the lowest win rate for this player (best move for opponent)
@@ -71,12 +72,14 @@ def expand_leaf(node, board, state):
     return new_leaf, new_state
      
 def find_gap(state):
+    # print("finding gap...")
     state_x, state_y = state[0][0], state[0][1]
     # turn state into 2d array
     d_state = [[False, False, False], [False, False, False], [False, False, False]]
     gaps = []
     for space in state:
-        d_state[space[2]][space[3]] = True
+        if space[0] is state_x and space[1] is state_y:
+            d_state[space[2]][space[3]] = True
 
     # run check
     for i in range(3):
@@ -105,10 +108,11 @@ def rollout(board, state):
     current_state = state
     legal_moves = board.legal_actions(current_state)
     while not board.is_ended(current_state):
-        if find_gap(board.legal_actions(current_state)):
-            rollout_move = find_gap(board.legal_actions(current_state))
+        gaps = find_gap(board.legal_actions(current_state))
+        if gaps: 
+            rollout_move = gaps
         else:
-            rollout_move = choice(board.legal_actions(current_state))
+            rollout_move = choice(legal_moves)
         current_state = board.next_state(current_state, rollout_move)
         legal_moves = board.legal_actions(current_state)
     return current_state
@@ -144,8 +148,10 @@ def think(board, state):
     """
     identity_of_bot = board.current_player(state)
     root_node = MCTSNode(parent=None, parent_action=None, action_list=board.legal_actions(state))
+    root_node.visits = 1
 
     for step in range(num_nodes):
+        # print(step)
         # Copy the game for sampling a playthrough
         sampled_game = state
 

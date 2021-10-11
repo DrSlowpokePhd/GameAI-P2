@@ -76,11 +76,13 @@ def rollout(board, state):
 
     """
     current_state = state
+    legal_moves = board.legal_actions(current_state)
     while not board.is_ended(current_state):
         # Create next state with random choice of actions
-        rollout_move = choice(board.legal_actions(current_state))
+        rollout_move = choice(legal_moves)
         # print(board.legal_actions(current_state))
         current_state = board.next_state(current_state, rollout_move)
+        legal_moves = board.legal_actions(current_state)
     return current_state
 
 
@@ -116,6 +118,8 @@ def think(board, state):
     #print("Untried: ", root_node.untried_actions)
 
     for step in range(num_nodes):
+        
+        
         sampled_game = state
 
         node = root_node

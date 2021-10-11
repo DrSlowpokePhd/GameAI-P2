@@ -248,7 +248,7 @@ class Board(object):
             state[2 * x] | state[2 * x + 1] for x in range(9)
         ]
         finished = state[18] | state[19]
-
+        # print("actions equal...")
         actions = [
             (R, C, r, c)
             for R in Rset
